@@ -1,0 +1,137 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'fr.il_totore.manadrop' version '0.4.2'
+    id 'com.rikonardo.papermake' version '1.0.4'
+}
+
+group = 'cx.rain'
+archivesBaseName = 'qore'
+
+version = '1.0.0'
+if (System.getenv("JITPACK") == "true") {
+    version += "-${System.getenv("VERSION")}"
+}
+var release = false
+if (release || (project.hasProperty("QORE_RELEASE") && project.property("QORE_RELEASE") == 'true')) {
+    version += '-release'
+} else {
+    version += '-dev'
+}
+
+spigot {
+    desc {
+        named 'Qore'
+        version project.version
+        authors 'qyl27'
+        main 'cx.rain.qore.Qore'
+        description 'A minecraft bukkit plugins dev helper library.'
+        website 'https://github.com/qyl27/Qore'
+        load 'startup'
+    }
+}
+
+buildTools {
+    // qyl27: install a maven and configure MAVEN_HOME env var first.
+    versions '1.19.2'
+    workDir = projectDir.toPath().resolve("run").resolve("buildTools").toFile()
+//    mavenPath = ''
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'spigotmc-repo'
+        url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
+    }
+    maven {
+        name = 'sonatype'
+        url = 'https://oss.sonatype.org/content/groups/public/'
+    }
+    maven {
+        name = 'Jitpack'
+        url = 'https://jitpack.io'
+    }
+    flatDir {
+        dir 'libs'
+    }
+}
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+dependencies {
+    compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
+}
+
+def targetJavaVersion = 17
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        options.release = targetJavaVersion
+    }
+}
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand props
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+processResources.finalizedBy(spigotPlugin)
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+import org.apache.tools.ant.filters.ReplaceTokens
+task injectString(type: Copy) {
+    from ('src/main/java') {
+        include '**/*.java'
+        filter(ReplaceTokens, tokens: [version: project.version])
+    }
+    into "${buildDir}/generated/java"
+}
+compileJava.source = "${buildDir}/generated/java"
+compileJava.dependsOn injectString
+
+jar {
+    archiveClassifier.set('')
+
+    manifest {
+        attributes([
+                "Specification-Title"     : "qore",
+                "Specification-Vendor"    : "qyl27",
+                "Specification-Version"   : "1",
+                "Implementation-Title"    : project.name,
+                "Implementation-Version"  : project.jar.archiveVersion,
+                "Implementation-Vendor"   : "qyl27",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
