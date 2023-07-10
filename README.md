@@ -17,9 +17,9 @@ For commercial use: Please contact qyl27 for license.
 3. Run command below:
 Use spigot: 
 ```
-gradlew devServer -Ppmake.server=../buildTools/spigot-1.19.2.jar -Ppmake.port=25575 -Ppmake.dir=run/server
+gradlew devServer -Ppmake.server=../buildTools/spigot-1.20.1.jar -Ppmake.port=25575 -Ppmake.dir=run/server
 ```
 Or use paper:
 ```
-gradlew devServer -Ppmake.version=1.19.2 -Ppmake.port=25575 -Ppmake.dir=run/server
+gradlew devServer -Ppmake.version=1.20.1 -Ppmake.port=25575 -Ppmake.dir=run/server
 ```
